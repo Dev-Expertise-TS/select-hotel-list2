@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Filter, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -15,128 +15,125 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { loadHotelData } from "../data/hotels";
-import type { FilterState, Hotel } from "../types/hotel";
-import Image from "next/image";
+} from '@/components/ui/sheet';
+import { loadHotelData } from '../data/hotels';
+import type { FilterState, Hotel } from '../types/hotel';
+import Image from 'next/image';
 
 const ITEMS_PER_PAGE = 12;
 
 // 브랜드명을 정규화하는 함수
 function normalizeBrandName(brandName: string): string {
-  if (!brandName) return "기타";
+  if (!brandName) return '기타';
 
   let normalized = brandName.trim();
 
   // 괄호 안의 내용 제거 (예: "LXR Hotels & Resorts (Hilton)" -> "LXR Hotels & Resorts")
-  normalized = normalized.replace(/\s*$$[^)]*$$/g, "");
+  normalized = normalized.replace(/\s*$$[^)]*$$/g, '');
 
   // 쉼표 이후 내용 제거
-  normalized = normalized.split(",")[0].trim();
+  normalized = normalized.split(',')[0].trim();
 
   // 공통 접미사 제거
   const suffixesToRemove = [
-    "Hotels & Resorts",
-    "Hotels and Resorts",
-    "International",
-    "Worldwide",
-    "Collection",
-    "Group",
-    "Hotels",
-    "Resorts",
-    "& Resorts",
-    "and Resorts",
+    'Hotels & Resorts',
+    'Hotels and Resorts',
+    'International',
+    'Worldwide',
+    'Collection',
+    'Group',
+    'Hotels',
+    'Resorts',
+    '& Resorts',
+    'and Resorts',
   ];
 
   for (const suffix of suffixesToRemove) {
-    const regex = new RegExp(
-      `\\s+${suffix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-      "i"
-    );
-    normalized = normalized.replace(regex, "");
+    const regex = new RegExp(`\\s+${suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    normalized = normalized.replace(regex, '');
   }
 
   // 특별한 경우들 처리
   const brandMappings: { [key: string]: string } = {
-    "DoubleTree by Hilton": "DoubleTree",
-    "Hampton Inn & Suites": "Hampton Inn",
-    "Hampton Inn by Hilton": "Hampton Inn",
-    "Hilton Garden Inn": "Hilton Garden Inn",
-    "Embassy Suites by Hilton": "Embassy Suites",
-    "Homewood Suites by Hilton": "Homewood Suites",
-    "Home2 Suites by Hilton": "Home2 Suites",
-    "Tru by Hilton": "Tru",
-    "Curio Collection by Hilton": "Curio Collection",
-    "Tapestry Collection by Hilton": "Tapestry Collection",
-    "LXR Hotels & Resorts": "LXR",
-    "Waldorf Astoria": "Waldorf Astoria",
-    Conrad: "Conrad",
+    'DoubleTree by Hilton': 'DoubleTree',
+    'Hampton Inn & Suites': 'Hampton Inn',
+    'Hampton Inn by Hilton': 'Hampton Inn',
+    'Hilton Garden Inn': 'Hilton Garden Inn',
+    'Embassy Suites by Hilton': 'Embassy Suites',
+    'Homewood Suites by Hilton': 'Homewood Suites',
+    'Home2 Suites by Hilton': 'Home2 Suites',
+    'Tru by Hilton': 'Tru',
+    'Curio Collection by Hilton': 'Curio Collection',
+    'Tapestry Collection by Hilton': 'Tapestry Collection',
+    'LXR Hotels & Resorts': 'LXR',
+    'Waldorf Astoria': 'Waldorf Astoria',
+    'Conrad': 'Conrad',
 
-    "Marriott Hotels": "Marriott",
-    "JW Marriott": "JW Marriott",
-    "The Ritz-Carlton": "Ritz-Carlton",
-    "W Hotels": "W Hotels",
-    "The Luxury Collection": "Luxury Collection",
-    "St. Regis": "St. Regis",
-    "Le Meridien": "Le Meridien",
-    Westin: "Westin",
-    Sheraton: "Sheraton",
-    Renaissance: "Renaissance",
-    "Autograph Collection": "Autograph Collection",
-    "Delta Hotels": "Delta Hotels",
-    "Marriott Executive Apartments": "Marriott Executive Apartments",
-    "Courtyard by Marriott": "Courtyard",
-    "Four Points by Sheraton": "Four Points",
-    "SpringHill Suites": "SpringHill Suites",
-    "Fairfield Inn & Suites": "Fairfield Inn",
-    "Residence Inn": "Residence Inn",
-    "TownePlace Suites": "TownePlace Suites",
-    "AC Hotels by Marriott": "AC Hotels",
-    Aloft: "Aloft",
-    Element: "Element",
-    Moxy: "Moxy",
+    'Marriott Hotels': 'Marriott',
+    'JW Marriott': 'JW Marriott',
+    'The Ritz-Carlton': 'Ritz-Carlton',
+    'W Hotels': 'W Hotels',
+    'The Luxury Collection': 'Luxury Collection',
+    'St. Regis': 'St. Regis',
+    'Le Meridien': 'Le Meridien',
+    'Westin': 'Westin',
+    'Sheraton': 'Sheraton',
+    'Renaissance': 'Renaissance',
+    'Autograph Collection': 'Autograph Collection',
+    'Delta Hotels': 'Delta Hotels',
+    'Marriott Executive Apartments': 'Marriott Executive Apartments',
+    'Courtyard by Marriott': 'Courtyard',
+    'Four Points by Sheraton': 'Four Points',
+    'SpringHill Suites': 'SpringHill Suites',
+    'Fairfield Inn & Suites': 'Fairfield Inn',
+    'Residence Inn': 'Residence Inn',
+    'TownePlace Suites': 'TownePlace Suites',
+    'AC Hotels by Marriott': 'AC Hotels',
+    'Aloft': 'Aloft',
+    'Element': 'Element',
+    'Moxy': 'Moxy',
 
-    "Park Hyatt": "Park Hyatt",
-    "Grand Hyatt": "Grand Hyatt",
-    "Hyatt Regency": "Hyatt Regency",
-    "Hyatt Centric": "Hyatt Centric",
-    Andaz: "Andaz",
-    Thompson: "Thompson",
-    "Hyatt House": "Hyatt House",
-    "Hyatt Place": "Hyatt Place",
+    'Park Hyatt': 'Park Hyatt',
+    'Grand Hyatt': 'Grand Hyatt',
+    'Hyatt Regency': 'Hyatt Regency',
+    'Hyatt Centric': 'Hyatt Centric',
+    'Andaz': 'Andaz',
+    'Thompson': 'Thompson',
+    'Hyatt House': 'Hyatt House',
+    'Hyatt Place': 'Hyatt Place',
 
-    InterContinental: "InterContinental",
-    "Crowne Plaza": "Crowne Plaza",
-    "Holiday Inn Express": "Holiday Inn Express",
-    "Holiday Inn": "Holiday Inn",
-    "Staybridge Suites": "Staybridge Suites",
-    "Candlewood Suites": "Candlewood Suites",
-    "Hotel Indigo": "Hotel Indigo",
-    EVEN: "EVEN",
-    Kimpton: "Kimpton",
-    Regent: "Regent",
-    "Six Senses": "Six Senses",
-    HUALUXE: "HUALUXE",
+    'InterContinental': 'InterContinental',
+    'Crowne Plaza': 'Crowne Plaza',
+    'Holiday Inn Express': 'Holiday Inn Express',
+    'Holiday Inn': 'Holiday Inn',
+    'Staybridge Suites': 'Staybridge Suites',
+    'Candlewood Suites': 'Candlewood Suites',
+    'Hotel Indigo': 'Hotel Indigo',
+    'EVEN': 'EVEN',
+    'Kimpton': 'Kimpton',
+    'Regent': 'Regent',
+    'Six Senses': 'Six Senses',
+    'HUALUXE': 'HUALUXE',
 
-    "Four Seasons": "Four Seasons",
-    "Mandarin Oriental": "Mandarin Oriental",
-    Peninsula: "Peninsula",
-    "Shangri-La": "Shangri-La",
-    "Banyan Tree": "Banyan Tree",
-    Aman: "Aman",
-    "One&Only": "One&Only",
-    Rosewood: "Rosewood",
-    Edition: "Edition",
+    'Four Seasons': 'Four Seasons',
+    'Mandarin Oriental': 'Mandarin Oriental',
+    'Peninsula': 'Peninsula',
+    'Shangri-La': 'Shangri-La',
+    'Banyan Tree': 'Banyan Tree',
+    'Aman': 'Aman',
+    'One&Only': 'One&Only',
+    'Rosewood': 'Rosewood',
+    'Edition': 'Edition',
 
-    Sofitel: "Sofitel",
-    Pullman: "Pullman",
-    MGallery: "MGallery",
-    Novotel: "Novotel",
-    Mercure: "Mercure",
-    Adagio: "Adagio",
-    ibis: "ibis",
-    "ibis Styles": "ibis Styles",
-    "ibis budget": "ibis budget",
+    'Sofitel': 'Sofitel',
+    'Pullman': 'Pullman',
+    'MGallery': 'MGallery',
+    'Novotel': 'Novotel',
+    'Mercure': 'Mercure',
+    'Adagio': 'Adagio',
+    'ibis': 'ibis',
+    'ibis Styles': 'ibis Styles',
+    'ibis budget': 'ibis budget',
   };
 
   // 매핑된 브랜드명이 있으면 사용
@@ -146,7 +143,7 @@ function normalizeBrandName(brandName: string): string {
     }
   }
 
-  return normalized.trim() || "기타";
+  return normalized.trim() || '기타';
 }
 
 export default function HotelDirectory() {
@@ -154,7 +151,7 @@ export default function HotelDirectory() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
-    search: "",
+    search: '',
     regions: [],
     brands: [],
     priceRange: [0, 1000],
@@ -175,12 +172,10 @@ export default function HotelDirectory() {
 
   const uniqueRegions = useMemo(() => {
     const regions = [...new Set(hotels.map((hotel) => hotel.region))];
-    const filteredRegions = regions.filter(
-      (region) => region && region !== "기타"
-    );
+    const filteredRegions = regions.filter((region) => region && region !== '기타');
 
     // 우선순위 지역 정의
-    const priorityRegions = ["아시아", "북아메리카"];
+    const priorityRegions = ['아시아', '북아메리카'];
     const orderedRegions: string[] = [];
 
     // 우선순위 지역을 먼저 추가
@@ -198,12 +193,9 @@ export default function HotelDirectory() {
     orderedRegions.push(...remainingRegions);
 
     // "기타" 항목이 있으면 마지막에 추가
-    const hasOther =
-      regions.includes("기타") ||
-      regions.includes("") ||
-      regions.includes(null);
+    const hasOther = regions.includes('기타') || regions.includes('') || regions.includes(null);
     if (hasOther) {
-      orderedRegions.push("기타");
+      orderedRegions.push('기타');
     }
 
     return orderedRegions;
@@ -212,7 +204,7 @@ export default function HotelDirectory() {
   const regionCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     hotels.forEach((hotel) => {
-      const region = hotel.region || "기타";
+      const region = hotel.region || '기타';
       counts[region] = (counts[region] || 0) + 1;
     });
     return counts;
@@ -242,23 +234,23 @@ export default function HotelDirectory() {
 
     // 인기 브랜드 우선순위 정의
     const popularBrands = [
-      "Marriott",
-      "Hilton",
-      "Hyatt",
-      "InterContinental",
-      "Four Seasons",
-      "Ritz-Carlton",
-      "Sheraton",
-      "Westin",
-      "DoubleTree",
-      "Crowne Plaza",
-      "Holiday Inn",
-      "Sofitel",
-      "Novotel",
-      "Mercure",
-      "Radisson",
-      "Best Western",
-      "Accor",
+      'Marriott',
+      'Hilton',
+      'Hyatt',
+      'InterContinental',
+      'Four Seasons',
+      'Ritz-Carlton',
+      'Sheraton',
+      'Westin',
+      'DoubleTree',
+      'Crowne Plaza',
+      'Holiday Inn',
+      'Sofitel',
+      'Novotel',
+      'Mercure',
+      'Radisson',
+      'Best Western',
+      'Accor',
     ];
 
     // 브랜드를 인기도 순으로 정렬
@@ -304,37 +296,24 @@ export default function HotelDirectory() {
       // 브랜드 필터링 시 정규화된 브랜드명으로 비교
       const normalizedHotelBrand = normalizeBrandName(hotel.brand);
       const matchesBrand =
-        filters.brands.length === 0 ||
-        filters.brands.includes(normalizedHotelBrand);
+        filters.brands.length === 0 || filters.brands.includes(normalizedHotelBrand);
 
       const matchesPrice =
-        hotel.price >= filters.priceRange[0] &&
-        hotel.price <= filters.priceRange[1];
+        hotel.price >= filters.priceRange[0] && hotel.price <= filters.priceRange[1];
       const matchesRating = hotel.rating >= filters.minRating;
 
-      return (
-        matchesSearch &&
-        matchesRegion &&
-        matchesBrand &&
-        matchesPrice &&
-        matchesRating
-      );
+      return matchesSearch && matchesRegion && matchesBrand && matchesPrice && matchesRating;
     });
   }, [hotels, filters]);
 
   const totalPages = Math.ceil(filteredHotels.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedHotels = filteredHotels.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE
-  );
+  const paginatedHotels = filteredHotels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handleRegionChange = (region: string, checked: boolean) => {
     setFilters((prev) => ({
       ...prev,
-      regions: checked
-        ? [...prev.regions, region]
-        : prev.regions.filter((r) => r !== region),
+      regions: checked ? [...prev.regions, region] : prev.regions.filter((r) => r !== region),
     }));
     setCurrentPage(1);
   };
@@ -342,16 +321,14 @@ export default function HotelDirectory() {
   const handleBrandChange = (brand: string, checked: boolean) => {
     setFilters((prev) => ({
       ...prev,
-      brands: checked
-        ? [...prev.brands, brand]
-        : prev.brands.filter((b) => b !== brand),
+      brands: checked ? [...prev.brands, brand] : prev.brands.filter((b) => b !== brand),
     }));
     setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({
-      search: "",
+      search: '',
       regions: [],
       brands: [],
       priceRange: [0, 1000],
@@ -374,16 +351,17 @@ export default function HotelDirectory() {
                 <Checkbox
                   id={`region-${region}`}
                   checked={filters.regions.includes(region)}
-                  onCheckedChange={(checked) =>
-                    handleRegionChange(region, checked as boolean)
-                  }
+                  onCheckedChange={(checked) => handleRegionChange(region, checked as boolean)}
                 />
-                <Label htmlFor={`region-${region}`} className="text-sm">
-                  {region ? region : "기타"}
+                <Label
+                  htmlFor={`region-${region}`}
+                  className="text-sm"
+                >
+                  {region ? region : '기타'}
                 </Label>
               </div>
               <span className="text-xs text-gray-500">
-                {regionCounts[region || "기타"] || 0}
+                {regionCounts[region || '기타'] || 0}
               </span>
             </div>
           ))}
@@ -402,23 +380,26 @@ export default function HotelDirectory() {
                 <Checkbox
                   id={`brand-${brand}`}
                   checked={filters.brands.includes(brand)}
-                  onCheckedChange={(checked) =>
-                    handleBrandChange(brand, checked as boolean)
-                  }
+                  onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
                 />
-                <Label htmlFor={`brand-${brand}`} className="text-sm">
+                <Label
+                  htmlFor={`brand-${brand}`}
+                  className="text-sm"
+                >
                   {brand}
                 </Label>
               </div>
-              <span className="text-xs text-gray-500">
-                {brandCounts[brand] || 0}
-              </span>
+              <span className="text-xs text-gray-500">{brandCounts[brand] || 0}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <Button onClick={clearFilters} variant="outline" className="w-full">
+      <Button
+        onClick={clearFilters}
+        variant="outline"
+        className="w-full"
+      >
         필터 초기화
       </Button>
     </div>
@@ -432,9 +413,7 @@ export default function HotelDirectory() {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             투어비스 럭셔리 셀렉트 호텔 디렉토리
           </h1>
-          <p className="text-gray-600">
-            전 세계 럭셔리 호텔을 지역과 브랜드별로 찾아보세요
-          </p>
+          <p className="text-gray-600">전 세계 럭셔리 호텔을 지역과 브랜드별로 찾아보세요</p>
         </div>
 
         {/* Search and Filter Bar */}
@@ -460,7 +439,10 @@ export default function HotelDirectory() {
           {/* Mobile Filter Button */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="sm:hidden">
+              <Button
+                variant="outline"
+                className="sm:hidden"
+              >
                 <Filter className="w-4 h-4 mr-2" />
                 필터
               </Button>
@@ -468,9 +450,7 @@ export default function HotelDirectory() {
             <SheetContent>
               <SheetHeader>
                 <SheetTitle>필터</SheetTitle>
-                <SheetDescription>
-                  원하는 조건으로 호텔을 필터링하세요
-                </SheetDescription>
+                <SheetDescription>원하는 조건으로 호텔을 필터링하세요</SheetDescription>
               </SheetHeader>
               <div className="mt-6">
                 <FilterContent />
@@ -503,9 +483,13 @@ export default function HotelDirectory() {
                 총 {filteredHotels.length}개의 호텔이 검색되었습니다
                 {filters.regions.length > 0 && (
                   <span className="ml-2">
-                    지역:{" "}
+                    지역:{' '}
                     {filters.regions.map((region) => (
-                      <Badge key={region} variant="secondary" className="ml-1">
+                      <Badge
+                        key={region}
+                        variant="secondary"
+                        className="ml-1"
+                      >
                         {region}
                       </Badge>
                     ))}
@@ -513,14 +497,21 @@ export default function HotelDirectory() {
                 )}
                 {filters.brands.length > 0 && (
                   <span className="ml-2">
-                    브랜드:{" "}
+                    브랜드:{' '}
                     {filters.brands.slice(0, 3).map((brand) => (
-                      <Badge key={brand} variant="secondary" className="ml-1">
+                      <Badge
+                        key={brand}
+                        variant="secondary"
+                        className="ml-1"
+                      >
                         {brand}
                       </Badge>
                     ))}
                     {filters.brands.length > 3 && (
-                      <Badge variant="secondary" className="ml-1">
+                      <Badge
+                        variant="secondary"
+                        className="ml-1"
+                      >
                         +{filters.brands.length - 3}
                       </Badge>
                     )}
@@ -533,9 +524,7 @@ export default function HotelDirectory() {
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                <span className="ml-2 text-gray-500">
-                  호텔 데이터를 불러오는 중...
-                </span>
+                <span className="ml-2 text-gray-500">호텔 데이터를 불러오는 중...</span>
               </div>
             ) : (
               <>
@@ -546,16 +535,16 @@ export default function HotelDirectory() {
                       key={hotel.id}
                       className="group cursor-pointer"
                       onClick={() => {
-                        const url = `https://ai.luxury-select.co.kr/info?hotel=${encodeURIComponent(
+                        const url = `https://select-ai-concierge-746568200185.asia-northeast3.run.app/?hotel=${encodeURIComponent(
                           hotel.nameEng
                         )}&id=${encodeURIComponent(hotel.paragonId)}`;
-                        window.open(url, "_blank");
+                        window.open(url, '_blank');
                       }}
                     >
                       <div className="relative mb-3">
                         <div className="relative aspect-square rounded-xl overflow-hidden">
                           <Image
-                            src={hotel.image || "/placeholder.svg"}
+                            src={hotel.image || '/placeholder.svg'}
                             alt={hotel.name}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -583,9 +572,7 @@ export default function HotelDirectory() {
                         </div>
 
                         <div className="pt-1">
-                          <p className="text-gray-500 text-xs truncate">
-                            {hotel.address}
-                          </p>
+                          <p className="text-gray-500 text-xs truncate">{hotel.address}</p>
                         </div>
                       </div>
                     </div>
@@ -596,7 +583,10 @@ export default function HotelDirectory() {
                 {paginatedHotels.length === 0 && !loading && (
                   <div className="flex flex-col items-center justify-center h-64 text-center">
                     <p className="text-gray-500 mb-4">검색 결과가 없습니다.</p>
-                    <Button onClick={clearFilters} variant="outline">
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                    >
                       필터 초기화
                     </Button>
                   </div>
@@ -607,50 +597,41 @@ export default function HotelDirectory() {
                   <div className="flex justify-center items-center space-x-2">
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
                     >
                       이전
                     </Button>
 
                     <div className="flex space-x-1">
-                      {Array.from(
-                        { length: Math.min(5, totalPages) },
-                        (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={
-                                currentPage === pageNum ? "default" : "outline"
-                              }
-                              onClick={() => setCurrentPage(pageNum)}
-                              className="w-10 h-10 p-0"
-                            >
-                              {pageNum}
-                            </Button>
-                          );
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
                         }
-                      )}
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className="w-10 h-10 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
                     </div>
 
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
                     >
                       다음
