@@ -537,7 +537,7 @@ export default function HotelDirectory() {
                       className="group cursor-pointer"
                       onClick={() => {
                         const url = `https://select-ai-concierge-746568200185.asia-northeast3.run.app/?hotel=${encodeURIComponent(
-                          hotel.nameEng
+                          hotel.name
                         )}&id=${encodeURIComponent(hotel.paragonId)}`;
                         window.open(url, '_blank');
                       }}
