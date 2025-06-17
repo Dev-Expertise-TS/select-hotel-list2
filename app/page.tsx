@@ -500,7 +500,8 @@ export default function HotelDirectory() {
             {/* Results Summary */}
             <div className="mb-6">
               <p className="text-gray-600">
-                총 {filteredHotels.length}개의 호텔이 검색되었습니다
+                투어스 셀렉트 혜택이 동일하게 제공되는 총{" "}
+                {filteredHotels.length}개의 호텔이 검색되었습니다
                 {filters.regions.length > 0 && (
                   <span className="ml-2">
                     지역:{" "}
