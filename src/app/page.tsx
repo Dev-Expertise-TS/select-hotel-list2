@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Filter, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { loadHotelData } from '../data/hotels';
+import { fetchHotels } from '../data/hotels';
 import type { FilterState, Hotel } from '../types/hotel';
 import Image from 'next/image';
 
@@ -158,143 +158,109 @@ export default function HotelDirectory() {
     minRating: 0,
   });
 
+  // 브랜드 체크박스 영역 ref
+  const brandListRef = useRef<HTMLDivElement>(null);
+
   // 데이터 로드
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const data = await loadHotelData();
-      setHotels(data);
+      const data = await fetchHotels();
+      // 이미지가 있는 호텔만 필터링
+      const hotelsWithImage = data.filter((hotel) => hotel.image);
+      // 한국인이 선호하는 지역 우선순위 배열
+      const priorityCities = ['오사카', '후쿠오카', '도쿄', '홋카이도', '다낭', '필리핀', '싱가폴', '터키', '태국', 'LA', '뉴욕', '호주', '대만', '중국'];
+      // 우선순위 지역 호텔만 추출
+      const priorityHotels = hotelsWithImage.filter(hotel => hotel.city && priorityCities.some(city => hotel.city.includes(city)));
+      // 지역별로 하나씩 랜덤 추출
+      const selectedByCity: { [city: string]: typeof hotelsWithImage[0] } = {};
+      priorityCities.forEach(city => {
+        const cityHotels = priorityHotels.filter(hotel => hotel.city && hotel.city.includes(city));
+        if (cityHotels.length > 0) {
+          const randomHotel = cityHotels[Math.floor(Math.random() * cityHotels.length)];
+          selectedByCity[city] = randomHotel;
+        }
+      });
+      // 첫 페이지에 중복 없는 우선순위 지역 호텔만 랜덤 순서로 노출
+      const firstPageHotels = Object.values(selectedByCity);
+      function shuffle<T>(array: T[]): T[] {
+        return array
+          .map((value) => ({ value, sort: Math.random() }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(({ value }) => value);
+      }
+      setHotels([...shuffle(firstPageHotels), ...shuffle(hotelsWithImage.filter(hotel => !firstPageHotels.includes(hotel)))]);
       setLoading(false);
     }
 
     fetchData();
   }, []);
 
+  // 지역(대륙) 필터: continentKor 기준
   const uniqueRegions = useMemo(() => {
-    const regions = [...new Set(hotels.map((hotel) => hotel.region))];
-    const filteredRegions = regions.filter((region) => region && region !== '기타');
-
-    // 우선순위 지역 정의
-    const priorityRegions = ['아시아', '북아메리카'];
-    const orderedRegions: string[] = [];
-
-    // 우선순위 지역을 먼저 추가
-    priorityRegions.forEach((priority) => {
-      if (filteredRegions.includes(priority)) {
-        orderedRegions.push(priority);
-      }
-    });
-
-    // 나머지 지역을 알파벳 순으로 추가
-    const remainingRegions = filteredRegions
-      .filter((region) => !priorityRegions.includes(region))
-      .sort();
-
-    orderedRegions.push(...remainingRegions);
-
-    // "기타" 항목이 있으면 마지막에 추가
-    const hasOther = regions.includes('기타') || regions.includes('') || regions.includes(null);
-    if (hasOther) {
-      orderedRegions.push('기타');
-    }
-
-    return orderedRegions;
+    const regions = [...new Set(hotels.map((hotel) => hotel.continentKor || ''))];
+    return regions.filter((region) => region && region !== '');
   }, [hotels]);
 
   const regionCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     hotels.forEach((hotel) => {
-      const region = hotel.region || '기타';
+      const region = hotel.continentKor || '';
       counts[region] = (counts[region] || 0) + 1;
     });
     return counts;
   }, [hotels]);
 
+  // 호텔 체인 필터: normalizeBrandName 기준
   const uniqueBrands = useMemo(() => {
-    // 정규화된 브랜드명으로 그룹화
-    const normalizedBrandCounts: { [key: string]: number } = {};
-    const brandMapping: { [key: string]: string[] } = {}; // 정규화된 브랜드 -> 원본 브랜드들
-
-    hotels.forEach((hotel) => {
-      const originalBrand = hotel.brand;
-      const normalizedBrand = normalizeBrandName(originalBrand);
-
-      normalizedBrandCounts[normalizedBrand] =
-        (normalizedBrandCounts[normalizedBrand] || 0) + 1;
-
-      if (!brandMapping[normalizedBrand]) {
-        brandMapping[normalizedBrand] = [];
-      }
-      if (!brandMapping[normalizedBrand].includes(originalBrand)) {
-        brandMapping[normalizedBrand].push(originalBrand);
-      }
-    });
-
-    const brands = Object.keys(normalizedBrandCounts);
-
-    // 인기 브랜드 우선순위 정의
+    const brands = [...new Set(hotels.map((hotel) => normalizeBrandName(hotel.brand || '')))].filter((brand) => brand && brand !== '');
+    // 유명 브랜드 우선순위 배열
     const popularBrands = [
-      'Marriott',
-      'Hilton',
-      'Hyatt',
-      'InterContinental',
-      'Four Seasons',
-      'Ritz-Carlton',
-      'Sheraton',
-      'Westin',
-      'DoubleTree',
-      'Crowne Plaza',
-      'Holiday Inn',
-      'Sofitel',
-      'Novotel',
-      'Mercure',
-      'Radisson',
-      'Best Western',
-      'Accor',
+      'Hilton', 'Marriott', 'Hyatt', 'InterContinental', 'Four Seasons', 'Ritz-Carlton',
+      'Sheraton', 'Westin', 'DoubleTree', 'Crowne Plaza', 'Holiday Inn', 'Sofitel',
+      'Novotel', 'Mercure', 'Radisson', 'Best Western', 'Accor', 'Conrad', 'Park Hyatt',
+      'JW Marriott', 'Waldorf Astoria', 'Peninsula', 'Shangri-La', 'Banyan Tree', 'Aman',
+      'Rosewood', 'Edition', 'Pullman', 'MGallery', 'Le Meridien', 'St. Regis', 'W Hotels',
+      'Autograph Collection', 'Delta Hotels', 'Courtyard', 'Four Points', 'SpringHill Suites',
+      'Fairfield Inn', 'Residence Inn', 'TownePlace Suites', 'AC Hotels', 'Aloft', 'Element', 'Moxy',
+      'Kimpton', 'Mandarin Oriental', 'Regent', 'Six Senses', 'HUALUXE', 'Homewood Suites', 'Tru',
+      'Curio Collection', 'Tapestry Collection', 'LXR', 'Embassy Suites', 'Home2 Suites', 'Marriott Executive Apartments'
     ];
-
-    // 브랜드를 인기도 순으로 정렬
-    const sortedBrands = brands.sort((a, b) => {
-      // 1. 인기 브랜드 우선순위 확인
-      const aIsPopular = popularBrands.some((popular) => a.includes(popular));
-      const bIsPopular = popularBrands.some((popular) => b.includes(popular));
-
-      if (aIsPopular && !bIsPopular) return -1;
-      if (!aIsPopular && bIsPopular) return 1;
-
-      // 2. 둘 다 인기 브랜드이거나 둘 다 아닌 경우, 호텔 개수로 정렬
-      const countDiff = normalizedBrandCounts[b] - normalizedBrandCounts[a];
-      if (countDiff !== 0) return countDiff;
-
-      // 3. 호텔 개수가 같으면 알파벳 순
-      return a.localeCompare(b);
-    });
-
-    return sortedBrands;
+    // 유명 브랜드 먼저, 나머지는 알파벳 순
+    return [
+      ...popularBrands.filter((brand) => brands.includes(brand)),
+      ...brands.filter((brand) => !popularBrands.includes(brand)).sort((a, b) => a.localeCompare(b))
+    ];
   }, [hotels]);
 
   const brandCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     hotels.forEach((hotel) => {
-      const normalizedBrand = normalizeBrandName(hotel.brand);
-      counts[normalizedBrand] = (counts[normalizedBrand] || 0) + 1;
+      const brand = normalizeBrandName(hotel.brand || '');
+      counts[brand] = (counts[brand] || 0) + 1;
     });
     return counts;
   }, [hotels]);
 
   const filteredHotels = useMemo(() => {
     return hotels.filter((hotel) => {
+      const searchLower = filters.search.toLowerCase();
       const matchesSearch =
-        hotel.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        hotel.city.toLowerCase().includes(filters.search.toLowerCase()) ||
-        hotel.brand.toLowerCase().includes(filters.search.toLowerCase()) ||
-        hotel.nameEng.toLowerCase().includes(filters.search.toLowerCase());
+        (hotel.name?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.nameEng?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.city?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.cityEng?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.country?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.countryEng?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.brand?.toLowerCase() || '').includes(searchLower) ||
+        (hotel.chain?.toLowerCase() || '').includes(searchLower);
 
       const matchesRegion =
-        filters.regions.length === 0 || filters.regions.includes(hotel.region);
+        filters.regions.length === 0 ||
+        (hotel.continentKor && filters.regions.includes(hotel.continentKor));
 
       // 브랜드 필터링 시 정규화된 브랜드명으로 비교
-      const normalizedHotelBrand = normalizeBrandName(hotel.brand);
+      const normalizedHotelBrand = normalizeBrandName(hotel.brand || '');
       const matchesBrand =
         filters.brands.length === 0 || filters.brands.includes(normalizedHotelBrand);
 
@@ -319,11 +285,18 @@ export default function HotelDirectory() {
   };
 
   const handleBrandChange = (brand: string, checked: boolean) => {
+    // 스크롤 위치 기억
+    const scrollTop = brandListRef.current?.scrollTop;
     setFilters((prev) => ({
       ...prev,
       brands: checked ? [...prev.brands, brand] : prev.brands.filter((b) => b !== brand),
     }));
-    setCurrentPage(1);
+    // 리렌더 후 스크롤 복원
+    setTimeout(() => {
+      if (brandListRef.current && typeof scrollTop === 'number') {
+        brandListRef.current.scrollTop = scrollTop;
+      }
+    }, 0);
   };
 
   const clearFilters = () => {
@@ -370,7 +343,7 @@ export default function HotelDirectory() {
 
       <div>
         <h3 className="font-semibold mb-3">호텔 브랜드</h3>
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-2 max-h-96 overflow-y-auto" ref={brandListRef}>
           {uniqueBrands.map((brand) => (
             <div
               key={brand}
@@ -410,8 +383,15 @@ export default function HotelDirectory() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            투어비스 럭셔리 셀렉트 호텔 디렉토리
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-end gap-4">
+            <Image
+              src="/tourvis_select_logo.png"
+              alt="Tourvis Select Logo"
+              width={176}
+              height={46}
+              priority
+            />
+            <span>투어비스 럭셔리 셀렉트 호텔 디렉토리</span>
           </h1>
           <p className="text-gray-600">전 세계 럭셔리 호텔을 지역과 브랜드별로 찾아보세요</p>
         </div>
@@ -479,9 +459,8 @@ export default function HotelDirectory() {
           <div className="flex-1">
             {/* Results Summary */}
             <div className="mb-6">
-              <p className="text-gray-600">
-                투어스 셀렉트 혜택이 동일하게 제공되는 총 {filteredHotels.length}개의 호텔이
-                검색되었습니다
+              <div className="text-gray-600">
+                투어스 셀렉트 혜택이 동일하게 제공되는 총 {filteredHotels.length}개의 호텔이 검색되었습니다
                 {filters.regions.length > 0 && (
                   <span className="ml-2">
                     지역:{' '}
@@ -518,7 +497,7 @@ export default function HotelDirectory() {
                     )}
                   </span>
                 )}
-              </p>
+              </div>
             </div>
 
             {/* Loading State */}
@@ -531,7 +510,7 @@ export default function HotelDirectory() {
               <>
                 {/* Hotel Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
-                  {paginatedHotels.map((hotel) => (
+                  {paginatedHotels.map((hotel, index) => (
                     <div
                       key={hotel.id}
                       className="group cursor-pointer"
@@ -544,15 +523,25 @@ export default function HotelDirectory() {
                     >
                       <div className="relative mb-3">
                         <div className="relative aspect-square rounded-xl overflow-hidden">
-                          <Image
-                            src={hotel.image || '/placeholder.svg'}
-                            alt={hotel.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          {hotel.image ? (
+                            <Image
+                              src={hotel.image}
+                              alt={hotel.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              placeholder="blur"
+                              blurDataURL="/placeholder.svg"
+                              sizes="(max-width: 768px) 50vw, 25vw"
+                              priority={index < 4}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500 text-sm">
+                              이미지 준비중
+                            </div>
+                          )}
                           <div className="absolute bottom-3 left-3">
                             <Badge className="bg-white text-black text-xs font-medium px-2 py-1 shadow-sm">
-                              {normalizeBrandName(hotel.brand)}
+                              {normalizeBrandName(hotel.brand || '')}
                             </Badge>
                           </div>
                         </div>
