@@ -517,7 +517,7 @@ export default function HotelDirectory() {
                       onClick={() => {
                         const url = `https://select-ai-concierge-746568200185.asia-northeast3.run.app/?hotel=${encodeURIComponent(
                           hotel.name
-                        )}&id=${encodeURIComponent(hotel.paragonId)}`;
+                        )}&id=${encodeURIComponent(hotel.sabreId)}`;
                         window.open(url, '_blank');
                       }}
                     >
@@ -530,7 +530,7 @@ export default function HotelDirectory() {
                               fill
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                               placeholder="blur"
-                              blurDataURL="/placeholder.svg"
+                              blurDataURL={hotel.thumbnail || "/placeholder.svg"}
                               sizes="(max-width: 768px) 50vw, 25vw"
                               priority={index < 4}
                             />

@@ -20,7 +20,7 @@ export async function fetchHotels(): Promise<Hotel[]> {
     starRating: 5, // 필요시 supabase에 컬럼 추가, 없으면 기본값
     price: 0, // 필요시 supabase에 컬럼 추가, 없으면 기본값
     rating: 0, // 필요시 supabase에 컬럼 추가, 없으면 기본값
-    image: item.image_1 || '', // image_1 필드를 image로 매핑
+    image: item.image || '', // image 필드를 image로 매핑
     amenities: [],
     description: '',
     popularityScore: 0,

@@ -25,6 +25,7 @@ export interface Hotel {
   countryEng?: string
   continentKor?: string
   chain?: string
+  thumbnail?: string
 }
 
 export interface FilterState {
