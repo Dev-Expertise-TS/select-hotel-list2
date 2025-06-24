@@ -383,17 +383,26 @@ export default function HotelDirectory() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-end gap-4">
+          <h1
+            className="flex flex-col items-center sm:flex-row sm:items-end gap-2 sm:gap-4 text-center sm:text-left mb-2"
+          >
             <Image
               src="/tourvis_select_logo.png"
               alt="Tourvis Select Logo"
-              width={176}
-              height={46}
+              width={120}
+              height={32}
               priority
+              className="w-28 h-auto object-contain sm:h-full sm:max-h-[55px] sm:w-auto"
             />
-            <span>투어비스 럭셔리 셀렉트 호텔 디렉토리</span>
+            <span
+              className="text-lg font-semibold sm:text-4xl sm:font-bold text-gray-900 mt-2 sm:mt-auto flex items-center sm:self-center"
+            >
+              투어비스 럭셔리 셀렉트 호텔 디렉토리
+            </span>
           </h1>
-          <p className="text-gray-600">전 세계 럭셔리 호텔을 지역과 브랜드별로 찾아보세요</p>
+          <p className="text-gray-600 text-center sm:text-left">
+            전 세계 럭셔리 호텔을 지역과 브랜드별로 찾아보세요.
+          </p>
         </div>
 
         {/* Search and Filter Bar */}
@@ -460,7 +469,14 @@ export default function HotelDirectory() {
             {/* Results Summary */}
             <div className="mb-6">
               <div className="text-gray-600">
-                투어스 셀렉트 혜택이 동일하게 제공되는 총 {filteredHotels.length}개의 호텔이 검색되었습니다
+                <span className="hidden sm:inline">
+                  투어스 셀렉트 혜택이 동일하게 제공되는 총
+                  <span className="text-blue-700 font-bold"> {filteredHotels.length}</span>개의 호텔이 검색되었습니다.
+                </span>
+                <span className="inline sm:hidden">
+                  투어스 셀렉트 혜택이 동일하게 제공되는<br />
+                  총 <span className="text-blue-700 font-bold">{filteredHotels.length}</span>개의 호텔이 검색되었습니다.
+                </span>
                 {filters.regions.length > 0 && (
                   <span className="ml-2">
                     지역:{' '}
