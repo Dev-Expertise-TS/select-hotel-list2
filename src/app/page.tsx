@@ -531,7 +531,7 @@ export default function HotelDirectory() {
                       key={hotel.id}
                       className="group cursor-pointer"
                       onClick={() => {
-                        const url = `https://select-ai-concierge-746568200185.asia-northeast3.run.app/?hotel=${encodeURIComponent(
+                        const url = `https://concierge.luxury-select.co.kr/?hotel=${encodeURIComponent(
                           hotel.name
                         )}&id=${encodeURIComponent(hotel.sabreId)}`;
                         window.open(url, '_blank');
