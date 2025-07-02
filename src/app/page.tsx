@@ -29,7 +29,7 @@ function normalizeBrandName(brandName: string): string {
   let normalized = brandName.trim();
 
   // 괄호 안의 내용 제거 (예: "LXR Hotels & Resorts (Hilton)" -> "LXR Hotels & Resorts")
-  normalized = normalized.replace(/\s*$$[^)]*$$/g, '');
+  normalized = normalized.replace(/\s*\([^)]*\)/g, '');
 
   // 쉼표 이후 내용 제거
   normalized = normalized.split(',')[0].trim();
@@ -49,91 +49,39 @@ function normalizeBrandName(brandName: string): string {
   ];
 
   for (const suffix of suffixesToRemove) {
-    const regex = new RegExp(`\\s+${suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const regex = new RegExp(`\\s+${suffix.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}$`, 'i');
     normalized = normalized.replace(regex, '');
   }
 
-  // 특별한 경우들 처리
+  // 최종적으로 남길 브랜드 리스트
+  const allowedBrands = [
+    'Hilton', 'Marriott', 'Hyatt', 'InterContinental', 'Four Seasons', 'Ritz-Carlton',
+    'Sheraton', 'Westin', 'Sofitel', 'Accor', 'Conrad', 'Park Hyatt', 'JW Marriott',
+    'Waldorf Astoria', 'Peninsula', 'Shangri-La', 'Aman', 'Pullman', 'St. Regis', 'Mandarin Oriental'
+  ];
+
+  // 브랜드 매핑
   const brandMappings: { [key: string]: string } = {
-    'DoubleTree by Hilton': 'DoubleTree',
-    'Hampton Inn & Suites': 'Hampton Inn',
-    'Hampton Inn by Hilton': 'Hampton Inn',
-    'Hilton Garden Inn': 'Hilton Garden Inn',
-    'Embassy Suites by Hilton': 'Embassy Suites',
-    'Homewood Suites by Hilton': 'Homewood Suites',
-    'Home2 Suites by Hilton': 'Home2 Suites',
-    'Tru by Hilton': 'Tru',
-    'Curio Collection by Hilton': 'Curio Collection',
-    'Tapestry Collection by Hilton': 'Tapestry Collection',
-    'LXR Hotels & Resorts': 'LXR',
-    'Waldorf Astoria': 'Waldorf Astoria',
+    'Hilton': 'Hilton',
     'Conrad': 'Conrad',
-
-    'Marriott Hotels': 'Marriott',
+    'Waldorf Astoria': 'Waldorf Astoria',
+    'Marriott': 'Marriott',
     'JW Marriott': 'JW Marriott',
-    'The Ritz-Carlton': 'Ritz-Carlton',
-    'W Hotels': 'W Hotels',
-    'The Luxury Collection': 'Luxury Collection',
-    'St. Regis': 'St. Regis',
-    'Le Meridien': 'Le Meridien',
-    'Westin': 'Westin',
-    'Sheraton': 'Sheraton',
-    'Renaissance': 'Renaissance',
-    'Autograph Collection': 'Autograph Collection',
-    'Delta Hotels': 'Delta Hotels',
-    'Marriott Executive Apartments': 'Marriott Executive Apartments',
-    'Courtyard by Marriott': 'Courtyard',
-    'Four Points by Sheraton': 'Four Points',
-    'SpringHill Suites': 'SpringHill Suites',
-    'Fairfield Inn & Suites': 'Fairfield Inn',
-    'Residence Inn': 'Residence Inn',
-    'TownePlace Suites': 'TownePlace Suites',
-    'AC Hotels by Marriott': 'AC Hotels',
-    'Aloft': 'Aloft',
-    'Element': 'Element',
-    'Moxy': 'Moxy',
-
+    'Ritz-Carlton': 'Ritz-Carlton',
+    'Hyatt': 'Hyatt',
     'Park Hyatt': 'Park Hyatt',
-    'Grand Hyatt': 'Grand Hyatt',
-    'Hyatt Regency': 'Hyatt Regency',
-    'Hyatt Centric': 'Hyatt Centric',
-    'Andaz': 'Andaz',
-    'Thompson': 'Thompson',
-    'Hyatt House': 'Hyatt House',
-    'Hyatt Place': 'Hyatt Place',
-
     'InterContinental': 'InterContinental',
-    'Crowne Plaza': 'Crowne Plaza',
-    'Holiday Inn Express': 'Holiday Inn Express',
-    'Holiday Inn': 'Holiday Inn',
-    'Staybridge Suites': 'Staybridge Suites',
-    'Candlewood Suites': 'Candlewood Suites',
-    'Hotel Indigo': 'Hotel Indigo',
-    'EVEN': 'EVEN',
-    'Kimpton': 'Kimpton',
-    'Regent': 'Regent',
-    'Six Senses': 'Six Senses',
-    'HUALUXE': 'HUALUXE',
-
     'Four Seasons': 'Four Seasons',
-    'Mandarin Oriental': 'Mandarin Oriental',
+    'Sheraton': 'Sheraton',
+    'Westin': 'Westin',
+    'Sofitel': 'Sofitel',
+    'Accor': 'Accor',
     'Peninsula': 'Peninsula',
     'Shangri-La': 'Shangri-La',
-    'Banyan Tree': 'Banyan Tree',
     'Aman': 'Aman',
-    'One&Only': 'One&Only',
-    'Rosewood': 'Rosewood',
-    'Edition': 'Edition',
-
-    'Sofitel': 'Sofitel',
     'Pullman': 'Pullman',
-    'MGallery': 'MGallery',
-    'Novotel': 'Novotel',
-    'Mercure': 'Mercure',
-    'Adagio': 'Adagio',
-    'ibis': 'ibis',
-    'ibis Styles': 'ibis Styles',
-    'ibis budget': 'ibis budget',
+    'St. Regis': 'St. Regis',
+    'Mandarin Oriental': 'Mandarin Oriental',
   };
 
   // 매핑된 브랜드명이 있으면 사용
@@ -143,7 +91,12 @@ function normalizeBrandName(brandName: string): string {
     }
   }
 
-  return normalized.trim() || '기타';
+  // allowedBrands에 포함된 브랜드명만 남기고, 나머지는 '기타'로 분류
+  if (allowedBrands.some((b) => normalized.toLowerCase() === b.toLowerCase())) {
+    return allowedBrands.find((b) => normalized.toLowerCase() === b.toLowerCase())!;
+  }
+
+  return '기타';
 }
 
 export default function HotelDirectory() {
@@ -386,16 +339,18 @@ export default function HotelDirectory() {
           <h1
             className="flex flex-col items-center sm:flex-row sm:items-end gap-2 sm:gap-4 text-center sm:text-left mb-2"
           >
-            <Image
-              src="/tourvis_select_logo.png"
-              alt="Tourvis Select Logo"
-              width={120}
-              height={32}
-              priority
-              className="w-28 h-auto object-contain sm:h-full sm:max-h-[55px] sm:w-auto"
-            />
+            <a href="https://luxury-select.co.kr" target="_blank" rel="noopener noreferrer">
+              <Image
+                src="/tourvis_select_logo.png"
+                alt="Tourvis Select Logo"
+                width={120}
+                height={32}
+                priority
+                className="w-28 h-auto object-contain sm:h-full sm:max-h-[55px] sm:w-auto"
+              />
+            </a>
             <span
-              className="text-lg font-semibold sm:text-4xl sm:font-bold text-gray-900 mt-2 sm:mt-auto flex items-center sm:self-center"
+              className="text-sm font-semibold sm:text-4xl sm:font-bold text-gray-900 mt-2 sm:mt-0 flex items-center sm:self-end"
             >
               투어비스 럭셔리 셀렉트 호텔 디렉토리
             </span>
