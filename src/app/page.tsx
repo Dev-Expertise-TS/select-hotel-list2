@@ -99,6 +99,20 @@ function normalizeBrandName(brandName: string): string {
   return '기타';
 }
 
+// 유럽 관련 지역명 통합 함수
+function normalizeRegion(region: string): string {
+  if (!region) return '';
+  const trimmed = region.trim();
+  if (
+    trimmed === '유럽' ||
+    trimmed === '유럽/아시아' ||
+    trimmed === '유럽, 아프리카'
+  ) {
+    return '유럽';
+  }
+  return trimmed;
+}
+
 export default function HotelDirectory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -149,16 +163,16 @@ export default function HotelDirectory() {
     fetchData();
   }, []);
 
-  // 지역(대륙) 필터: continentKor 기준
+  // 지역(대륙) 필터: continentKor 기준 (유럽 통합)
   const uniqueRegions = useMemo(() => {
-    const regions = [...new Set(hotels.map((hotel) => hotel.continentKor || ''))];
+    const regions = [...new Set(hotels.map((hotel) => normalizeRegion(hotel.continentKor || '')))];
     return regions.filter((region) => region && region !== '');
   }, [hotels]);
 
   const regionCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     hotels.forEach((hotel) => {
-      const region = hotel.continentKor || '';
+      const region = normalizeRegion(hotel.continentKor || '');
       counts[region] = (counts[region] || 0) + 1;
     });
     return counts;
@@ -210,7 +224,7 @@ export default function HotelDirectory() {
 
       const matchesRegion =
         filters.regions.length === 0 ||
-        (hotel.continentKor && filters.regions.includes(hotel.continentKor));
+        (hotel.continentKor && filters.regions.includes(normalizeRegion(hotel.continentKor)));
 
       // 브랜드 필터링 시 정규화된 브랜드명으로 비교
       const normalizedHotelBrand = normalizeBrandName(hotel.brand || '');
